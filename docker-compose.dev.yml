@@ -1,0 +1,124 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:13
+    container_name: inventario_postgres_dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass_secure_2024}
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - inventario_network_dev
+    restart: unless-stopped
+
+  # Gateway API
+  gateway:
+    build: ./gateway
+    container_name: inventario_gateway_dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${GATEWAY_PORT:-3000}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      EQUIPOS_SERVICE_URL: http://equipos-service:3002
+      INVENTARIO_SERVICE_URL: http://inventario-service:3003
+      REPORTES_SERVICE_URL: http://reportes-service:3004
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    depends_on:
+      - postgres
+    networks:
+      - inventario_network_dev
+    restart: unless-stopped
+
+  # Servicio de Autenticación
+  auth-service:
+    build: ./services/auth-service
+    container_name: inventario_auth_dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${AUTH_SERVICE_PORT:-3001}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass_secure_2024}
+    depends_on:
+      - postgres
+    networks:
+      - inventario_network_dev
+    restart: unless-stopped
+
+  # Servicio de Equipos
+  equipos-service:
+    build: ./services/equipos-service
+    container_name: inventario_equipos_dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${EQUIPOS_SERVICE_PORT:-3002}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass_secure_2024}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - postgres
+    networks:
+      - inventario_network_dev
+    restart: unless-stopped
+
+  # Servicio de Inventario
+  inventario-service:
+    build: ./services/inventario-service
+    container_name: inventario_inventario_dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${INVENTARIO_SERVICE_PORT:-3003}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass_secure_2024}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+    depends_on:
+      - postgres
+    networks:
+      - inventario_network_dev
+    restart: unless-stopped
+
+  # Frontend Client (desarrollo)
+  client:
+    build: ./client
+    container_name: inventario_client_dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:3000}
+    ports:
+      - "3005:3000"
+    depends_on:
+      - gateway
+    networks:
+      - inventario_network_dev
+    restart: unless-stopped
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  inventario_network_dev:
+    driver: bridge 

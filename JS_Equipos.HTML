@@ -1,0 +1,218 @@
+<script>
+  // ===============================================================
+  // ARCHIVO: JS_Equipos.html (Versión con Interfaz Mejorada y Reenvío de Acta)
+  // ROL: Lógica para la vista de Equipos (tabla, filtros, paginación).
+  // ===============================================================
+
+  let datosPaginados = [];
+
+  function populateFilterDropdowns() {
+      const ubiSelect = document.getElementById('filter-ubicacion');
+      ubiSelect.innerHTML = '<option value="All Locations">Todas las Ubicaciones</option>';
+      configData.ubicaciones.forEach(nombre => ubiSelect.innerHTML += `<option value="${nombre}">${nombre}</option>`);
+      
+      const estadoSelect = document.getElementById('filter-estado');
+      estadoSelect.innerHTML = '<option value="">Todos los Estados</option>';
+      (configData.estados || []).forEach(e => estadoSelect.innerHTML += `<option value="${e}">${e}</option>`);
+
+      const marcaSelect = document.getElementById('filter-marca');
+      marcaSelect.innerHTML = '<option value="">Todas las Marcas</option>';
+      (configData.marcas || []).forEach(m => marcaSelect.innerHTML += `<option value="${m}">${m}</option>`);
+
+      const propSelect = document.getElementById('filter-propiedad');
+      propSelect.innerHTML = '<option value="">Todas las Propiedades</option>';
+      (configData.propiedades || []).forEach(p => propSelect.innerHTML += `<option value="${p}">${p}</option>`);
+      
+      document.getElementById('filter-ubicacion').addEventListener('change', () => cargarEquipos());
+      document.getElementById('filter-estado').addEventListener('change', () => cargarEquipos());
+      document.getElementById('filter-marca').addEventListener('change', () => cargarEquipos());
+      document.getElementById('filter-propiedad').addEventListener('change', () => cargarEquipos());
+      document.getElementById('search-input').addEventListener('keyup', () => cargarEquipos());
+  }
+
+  function cargarEquipos(page = 1) {
+      const filtrosActivos = document.getElementById('filter-estado').value || document.getElementById('filter-marca').value || document.getElementById('filter-propiedad').value || document.getElementById('search-input').value;
+      if (page === 1 && !filtrosActivos && initialEquipmentData) {
+          console.log("Using pre-loaded equipment data.");
+          appState.equiposLoaded = true;
+          construirTabla(initialEquipmentData);
+          initialEquipmentData = null;
+          return;
+      }
+
+      appState.currentPage = page;
+      document.getElementById('loader-equipos').classList.remove('hidden');
+      document.getElementById('tabla-inventario').classList.add('hidden');
+      document.getElementById('mensaje-vacio').classList.add('hidden');
+      
+      const itemsPorPagina = document.getElementById('items-per-page')?.value || 30;
+      const filtros = {
+          'Estado': document.getElementById('filter-estado').value,
+          'Marca': document.getElementById('filter-marca').value,
+          'Propiedad': document.getElementById('filter-propiedad').value,
+          'general': document.getElementById('search-input').value
+      };
+      const hoja = document.getElementById('filter-ubicacion').value;
+
+      google.script.run
+          .withSuccessHandler(response => {
+              appState.equiposLoaded = true;
+              construirTabla(response)
+          })
+          .withFailureHandler(mostrarError)
+          .getFilteredEquipment({ hoja, pagina: appState.currentPage, filtros, itemsPorPagina });
+  }
+  
+  function construirTabla({ datos, paginaActual, totalPaginas, itemsPorPagina }) {
+      datosPaginados = datos;
+      const tabla = document.getElementById('tabla-inventario');
+      const thead = tabla.querySelector('thead');
+      const tbody = tabla.querySelector('tbody');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      document.getElementById('loader-equipos').classList.add('hidden');
+      document.getElementById('pagination-controls').classList.remove('hidden');
+
+      if (!datos || datos.length === 0) {
+          document.getElementById('mensaje-vacio').classList.remove('hidden');
+          document.getElementById('pagination-controls').classList.add('hidden');
+          return;
+      }
+      
+      tabla.classList.remove('hidden');
+      
+      const headers = [...ORDEN_COLUMNAS_EN, "Actions"];
+      const filaCabecera = document.createElement('tr');
+      headers.forEach(texto => {
+          const th = document.createElement('th');
+          th.textContent = texto;
+          filaCabecera.appendChild(th);
+      });
+      thead.appendChild(filaCabecera);
+
+      datos.forEach(objetoFila => {
+          const tr = document.createElement('tr');
+          headers.forEach(cabeceraEn => {
+              const td = document.createElement('td');
+              td.dataset.label = cabeceraEn;
+
+              if (cabeceraEn === 'Actions') {
+                  td.className = 'actions-cell';
+                  const actaUrl = objetoFila[COLUMNA_ACTA_FIRMADA_ES];
+                  let actaViewButton = '';
+                  let resendButton = ''; 
+
+                  if (actaUrl) {
+                      actaViewButton = `<button class="view-btn" title="Ver Acta Firmada" onclick="window.open('${actaUrl}', '_blank')"><i class="fas fa-file-check"></i></button>`;
+                  }
+                  
+                  if (objetoFila[COLUMN_MAP_EN_TO_ES['Status']] === 'Asignado') {
+                      const agentName = objetoFila[COLUMN_MAP_EN_TO_ES['Agent']] || 'el agente';
+                      resendButton = `<button class="resend-btn" title="Reenviar Acta" onclick="abrirModalParaReenvio(${objetoFila.idFila}, '${objetoFila.sheetName}', '${agentName.replace(/'/g, "\\'")}')"><i class="fas fa-paper-plane"></i></button>`;
+                  }
+
+                  td.innerHTML = `
+                      <button class="edit-btn" title="Editar / Ver Historial" onclick="abrirModalEditar(${objetoFila.idFila}, '${objetoFila.sheetName}', '${objetoFila.Serial || ''}')"><i class="fas fa-pencil-alt"></i></button>
+                      <button class="upload-btn" title="Subir o Reemplazar Acta" onclick="abrirModalSubirActa(${objetoFila.idFila}, '${objetoFila.sheetName}')"><i class="fas fa-upload"></i></button>
+                      ${actaViewButton}
+                      ${resendButton} 
+                  `;
+              } else {
+                  const cabeceraEs = COLUMN_MAP_EN_TO_ES[cabeceraEn];
+                  const valor = objetoFila[cabeceraEs];
+                  const valorTexto = valor || "";
+
+                  td.setAttribute('title', valorTexto);
+
+                  if (cabeceraEs === COLUMNA_ACTA_FIRMADA_ES) {
+                      if (valor) {
+                          td.innerHTML = `<a href="${valor}" target="_blank" class="table-link">Ver Acta</a>`;
+                      } else {
+                          td.innerHTML = `<span class="no-acta">No adjunta</span>`;
+                      }
+                  } else if (cabeceraEs === 'Estado') {
+                      const statusClass = (valor || 'default').toLowerCase().replace(/\s/g, '-').replace('ó', 'o');
+                      td.innerHTML = `<span class="status-badge status-${statusClass}">${valor || 'N/A'}</span>`;
+                  } else if (cabeceraEs === 'Fecha de Ingreso' && valor) {
+                      const formattedDate = new Date(valor).toLocaleDateString('es-CO');
+                      td.textContent = formattedDate;
+                      td.setAttribute('title', formattedDate); 
+                  } else {
+                      td.textContent = valorTexto;
+                  }
+              }
+              tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+      });
+
+      construirPaginacion(paginaActual, totalPaginas, itemsPorPagina);
+  }
+  
+  function construirPaginacion(pagina, totalPaginas, itemsPorPagina) {
+    const container = document.getElementById('pagination-controls');
+    container.innerHTML = '';
+    if (totalPaginas <= 1) return;
+
+    const controls = document.createElement('div');
+    controls.className = 'pagination';
+
+    if (pagina > 1) {
+      controls.appendChild(createPageButton('<< Primero', 1));
+      controls.appendChild(createPageButton('< Ant', pagina - 1));
+    }
+
+    const pageNumbers = getPageNumbers(pagina, totalPaginas);
+    pageNumbers.forEach(num => {
+      if (num === '...') {
+        controls.innerHTML += `<span class="pagination-ellipsis">...</span>`;
+      } else {
+        controls.appendChild(createPageButton(num, num, pagina === num));
+      }
+    });
+
+    if (pagina < totalPaginas) {
+      controls.appendChild(createPageButton('Sig >', pagina + 1));
+      controls.appendChild(createPageButton('Último >>', totalPaginas));
+    }
+    
+    container.appendChild(controls);
+
+    const selectorContainer = document.createElement('div');
+    selectorContainer.className = 'items-per-page-selector';
+    selectorContainer.innerHTML = `
+      <label for="items-per-page">Items:</label>
+      <select id="items-per-page">
+        <option value="15" ${itemsPorPagina == 15 ? 'selected' : ''}>15</option>
+        <option value="30" ${itemsPorPagina == 30 ? 'selected' : ''}>30</option>
+        <option value="50" ${itemsPorPagina == 50 ? 'selected' : ''}>50</option>
+      </select>
+    `;
+    container.appendChild(selectorContainer);
+    document.getElementById('items-per-page').addEventListener('change', () => cargarEquipos(1));
+  }
+
+  function createPageButton(text, pageNumber, isActive = false) {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.onclick = () => cargarEquipos(pageNumber);
+    if (isActive) button.classList.add('active');
+    return button;
+  }
+
+  function getPageNumbers(currentPage, totalPages) {
+    const pageNumbers = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+    } else {
+      pageNumbers.push(1);
+      if (currentPage > 3) pageNumbers.push('...');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pageNumbers.push(i);
+      }
+      if (currentPage < totalPages - 2) pageNumbers.push('...');
+      pageNumbers.push(totalPages);
+    }
+    return pageNumbers;
+  }
+</script>

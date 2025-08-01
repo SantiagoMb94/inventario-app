@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Inventario TWH</title>
+  
+  <!-- Google Fonts and Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- Google Charts Library -->
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <!-- Choices.js Library for advanced select boxes -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+  <?!= include('CSS'); ?>
+</head>
+<body data-theme="light">
+
+  <?!= include('HTMLBody'); ?>
+  
+  <!-- Modular JavaScript Loading -->
+  <?!= include('JS_App'); ?>
+  <?!= include('JS_Dashboard'); ?>
+  <?!= include('JS_Equipos'); ?>
+  <?!= include('JS_Reportes'); ?>
+  <?!= include('JS_Config'); ?>
+  <?!= include('JS_Modal'); ?>
+
+</body>
+</html>

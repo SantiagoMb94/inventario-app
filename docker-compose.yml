@@ -1,0 +1,164 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:13
+    container_name: inventario_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/migrations:/docker-entrypoint-initdb.d/migrations
+    ports:
+      - "5432:5432"
+    networks:
+      - inventario_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-inventario_user}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Gateway API
+  gateway:
+    build: ./gateway
+    container_name: inventario_gateway
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${GATEWAY_PORT:-3000}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      EQUIPOS_SERVICE_URL: http://equipos-service:3002
+      INVENTARIO_SERVICE_URL: http://inventario-service:3003
+      REPORTES_SERVICE_URL: http://reportes-service:3004
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Servicio de Autenticación
+  auth-service:
+    build: ./services/auth-service
+    container_name: inventario_auth
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${AUTH_SERVICE_PORT:-3001}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Servicio de Equipos
+  equipos-service:
+    build: ./services/equipos-service
+    container_name: inventario_equipos
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${EQUIPOS_SERVICE_PORT:-3002}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Servicio de Inventario
+  inventario-service:
+    build: ./services/inventario-service
+    container_name: inventario_inventario
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${INVENTARIO_SERVICE_PORT:-3003}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Servicio de Reportes
+  reportes-service:
+    build: ./services/reportes-service
+    container_name: inventario_reportes
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${REPORTES_SERVICE_PORT:-3004}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
+      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Frontend Client
+  client:
+    build: ./client
+    container_name: inventario_client
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://10.55.55.20}
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    build: ./nginx
+    container_name: inventario_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - gateway
+      - client
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  inventario_network:
+    driver: bridge 

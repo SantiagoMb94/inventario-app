@@ -1,0 +1,179 @@
+<script>
+  // ===============================================================
+  // ARCHIVO: JS_Dashboard.html (CORREGIDO CON GRÁFICOS MEJORADOS)
+  // ROL: Lógica para la vista del Dashboard.
+  // ===============================================================
+
+  /**
+   * Carga todos los datos necesarios para el dashboard con una sola llamada al servidor.
+   */
+  function loadDashboardData() {
+      document.getElementById('dashboard-loader').classList.remove('hidden');
+      document.getElementById('dashboard-content').classList.add('hidden');
+      
+      google.script.run
+        .withSuccessHandler(response => {
+          populateDashboard(response.stats);
+          populateRecentActivity(response.activity);
+        })
+        .withFailureHandler(mostrarError)
+        .getDashboardData();
+  }
+
+  /**
+   * Rellena la sección de KPIs, gráficos y alertas del dashboard.
+   * @param {Object} stats Las estadísticas del inventario.
+   */
+  function populateDashboard(stats) {
+      document.getElementById('dashboard-loader').classList.add('hidden');
+      document.getElementById('dashboard-content').classList.remove('hidden');
+      
+      document.getElementById('total-equipos').textContent = stats.totalEquipos || 0;
+      document.getElementById('total-asignados').textContent = stats.totalAsignados || 0;
+      document.getElementById('total-stock').textContent = stats.totalStock || 0;
+
+      const alertsList = document.getElementById('alerts-list');
+      alertsList.innerHTML = '';
+
+      const renderDuplicateAlert = (alertData, label) => {
+        if (alertData && alertData.length > 0) {
+          const itemsHtml = alertData.map(item =>
+            `<a href="#" onclick="searchForValue('${item.value}')" class="alert-link">${item.value}</a> (${item.count} veces)`
+          ).join(', ');
+          alertsList.innerHTML += `
+            <li class="alert-group">
+              <i class="fas fa-copy alert-icon"></i>
+              <div>
+                <span>Hay <strong>${alertData.length}</strong> ${label}(s) duplicado(s): ${itemsHtml}</span>
+              </div>
+            </li>`;
+        }
+      };
+
+      if (stats.alertas) {
+        const { equiposSinSerial, serialesDuplicados, macLanDuplicadas, macWifiDuplicadas } = stats.alertas;
+
+        if (equiposSinSerial && equiposSinSerial.length > 0) {
+          const itemsHtml = equiposSinSerial.map(item => `<li>- ${item.nombre} (en <strong>${item.ubicacion}</strong>)</li>`).join('');
+          alertsList.innerHTML += `
+            <li class="alert-group">
+              <i class="fas fa-triangle-exclamation alert-icon"></i>
+              <div>
+                <span>Hay <strong>${equiposSinSerial.length}</strong> item(s) sin número de Serial:</span>
+                <ul class="alert-details">${itemsHtml}</ul>
+              </div>
+            </li>`;
+        }
+        
+        renderDuplicateAlert(serialesDuplicados, 'Serial');
+        renderDuplicateAlert(macLanDuplicadas, 'MAC Lan');
+        renderDuplicateAlert(macWifiDuplicadas, 'MAC Wifi');
+      }
+
+      if (alertsList.innerHTML === '') {
+          alertsList.innerHTML = '<li><i class="fas fa-check-circle" style="color: #22c55e;"></i> <span>¡Todo en orden! No hay alertas.</span></li>';
+      }
+      
+      // --- INICIO DE LA MEJORA DE GRÁFICOS ---
+      const chartTextStyle = { color: '#a0a0c0', fontSize: 13 };
+      const chartTitleTextStyle = { color: '#e0e0e0', fontSize: 18, bold: false };
+      
+      const baseChartOptions = {
+        backgroundColor: 'transparent',
+        legend: { textStyle: chartTextStyle, position: 'right', alignment: 'center' },
+        titleTextStyle: chartTitleTextStyle,
+        colors: ['#f472b6', '#c084fc', '#818cf8', '#60a5fa', '#38bdf8', '#2dd4bf', '#a7f3d0']
+      };
+
+      const pieChartOptions = {
+        ...baseChartOptions,
+        title: 'Items by Location',
+        pieHole: 0.5, // Un agujero ligeramente más pequeño para dar más "cuerpo" a las rebanadas
+        pieSliceText: 'percentage',
+        pieSliceTextStyle: {
+            color: 'white',
+            fontSize: 13, // Ligeramente más pequeño para asegurar que quepa en todas las rebanadas
+            bold: true
+        },
+        sliceVisibilityThreshold: .01, // Asegura que se muestren rebanadas de hasta el 1%
+        pieSliceBorderColor: '#1f1d33',
+        tooltip: { textStyle: { color: '#1f1d33' }, showColorCode: true },
+        chartArea: { left: 10, top: 40, width: '100%', height: '85%' } // Maximiza el espacio para el gráfico
+      };
+
+      const barChartOptions = {
+        ...baseChartOptions,
+        title: 'Items by Status',
+        legend: { position: 'none' },
+        bar: { groupWidth: '50%' },
+        chartArea: { left: 120, top: 50, width: '70%', height: '75%' },
+        hAxis: { 
+          textStyle: chartTextStyle, 
+          gridlines: { color: '#3a3852', count: -1 },
+          baselineColor: 'transparent',
+          minValue: 0
+        },
+        vAxis: { 
+          textStyle: chartTextStyle,
+        },
+        annotations: {
+            alwaysOutside: true,
+            textStyle: {
+                fontSize: 14,
+                color: '#e0e0e0',
+                auraColor: 'none'
+            }
+        }
+      };
+
+      if(stats.equiposPorUbicacion && stats.equiposPorUbicacion.length > 1) {
+        const dataUbicacion = google.visualization.arrayToDataTable(stats.equiposPorUbicacion);
+        new google.visualization.PieChart(document.getElementById('chart-ubicacion')).draw(dataUbicacion, pieChartOptions);
+      }
+      
+      if(stats.equiposPorEstado && stats.equiposPorEstado.length > 1) {
+        const dataWithAnnotations = new google.visualization.DataTable();
+        dataWithAnnotations.addColumn('string', 'Estado');
+        dataWithAnnotations.addColumn('number', 'Cantidad');
+        dataWithAnnotations.addColumn({type: 'string', role: 'annotation'});
+
+        stats.equiposPorEstado.slice(1).forEach(row => {
+            dataWithAnnotations.addRow([row[0], row[1], String(row[1])]);
+        });
+        
+        new google.visualization.BarChart(document.getElementById('chart-estado')).draw(dataWithAnnotations, barChartOptions);
+      }
+      // --- FIN DE LA MEJORA DE GRÁFICOS ---
+      
+      appState.dashboardLoaded = true;
+  }
+  
+  /**
+   * Navega a la vista de equipos y busca un valor específico.
+   * @param {string} value El valor a buscar (serial, MAC, etc.).
+   */
+  function searchForValue(value) {
+    navigateTo('equipos');
+    setTimeout(() => { 
+      document.getElementById('search-input').value = value;
+      cargarEquipos();
+    }, 100);
+  }
+
+  /**
+   * Rellena la lista de actividad reciente.
+   * @param {Array} activities Un array con las actividades recientes.
+   */
+  function populateRecentActivity(activities) {
+      const activityList = document.getElementById('activity-list');
+      activityList.innerHTML = '';
+      if (activities && activities.length > 0) {
+          activities.forEach(activity => {
+              const formattedDate = activity[0];
+              activityList.innerHTML += `<li><span class="activity-time">${formattedDate}</span><span class="activity-desc"><strong>${activity[2]}:</strong> ${activity[3]}</span></li>`;
+          });
+      } else {
+          activityList.innerHTML = '<li>No recent activity.</li>';
+      }
+  }
+</script>

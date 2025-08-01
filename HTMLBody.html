@@ -1,0 +1,152 @@
+<div id="toast-container"></div>
+<div id="app-overlay" class="app-overlay hidden"></div>
+
+<div class="flex">
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <!-- Reemplaza el siguiente enlace 'src' con el enlace directo de tu propio logo siguiendo las instrucciones. -->
+      <img src="https://i.ibb.co/5hXfGQ5f/Circle-Crop-Image-14.png" alt="Logo Inventario" class="sidebar-logo">
+      <h1>INVENTORY</h1>
+    </div>
+    <nav id="sidebar-nav">
+      <a id="nav-dashboard" onclick="navigateTo('dashboard')"><i class="fas fa-tachometer-alt fa-fw"></i><span>Dashboard</span></a>
+      <a id="nav-equipos" onclick="navigateTo('equipos')"><i class="fas fa-boxes-stacked fa-fw"></i><span>Equipment</span></a>
+      <a id="nav-reportes" onclick="navigateTo('reportes')"><i class="fas fa-chart-pie fa-fw"></i><span>Reports</span></a>
+      <a id="nav-config" onclick="navigateTo('config')"><i class="fas fa-cog fa-fw"></i><span>Settings</span></a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <p>© 2025 Santiago Manco Bolaños</p>
+      <p>IT Support & Software Developer</p>
+      <p>SUTI S.A.S</p>
+    </div>
+
+  </aside>
+
+  <div class="main-container">
+    <header class="flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <button id="menu-toggle" class="menu-toggle-btn"><i class="fas fa-bars"></i></button>
+        <h2 id="main-title">Inventory Dashboard</h2>
+      </div>
+      <!-- INICIO DE LA MODIFICACIÓN: Se eliminó el interruptor de tema y otros íconos -->
+      <div class="header-actions">
+        <i class="fas fa-bell"></i>
+        <i class="fas fa-user-circle"></i>
+      </div>
+      <!-- FIN DE LA MODIFICACIÓN -->
+    </header>
+
+    <main>
+      <div class="content-wrapper">
+        <div id="view-dashboard" class="view-container hidden">
+            <div id="dashboard-loader" class="loader-container"><div class="loader"></div></div>
+            <div id="dashboard-content" class="hidden">
+                <div class="kpi-grid mb-4">
+                    <div class="kpi-card"><i class="fas fa-boxes-stacked"></i><div id="total-equipos" class="kpi-value">0</div><div class="kpi-label">Total Items</div></div>
+                    <div class="kpi-card"><i class="fas fa-user-check"></i><div id="total-asignados" class="kpi-value">0</div><div class="kpi-label">Assigned Items</div></div>
+                    <div class="kpi-card"><i class="fas fa-warehouse"></i><div id="total-stock" class="kpi-value">0</div><div class="kpi-label">Items in Stock</div></div>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="card"><h3>Items by Location</h3><div id="chart-ubicacion" class="chart-container"></div></div>
+                    <div class="card"><h3>Items by Status</h3><div id="chart-estado" class="chart-container"></div></div>
+                    <div class="card">
+                        <h3>Attention Points</h3>
+                        <ul id="alerts-list" class="alerts-list"></ul>
+                    </div>
+                    <div class="card">
+                        <h3>Recent Activity</h3>
+                        <ul id="activity-list" class="activity-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-equipos" class="view-container hidden">
+            <div class="filter-section">
+              <div><label for="filter-ubicacion">Location</label><select id="filter-ubicacion"></select></div>
+              <div><label for="filter-estado">Status</label><select id="filter-estado"></select></div>
+              <div><label for="filter-marca">Brand</label><select id="filter-marca"></select></div>
+              <div><label for="filter-propiedad">Ownership</label><select id="filter-propiedad"></select></div>
+              <div id="search-container"><label for="search-input">General Search</label><input type="text" id="search-input" placeholder="Search by Serial, Name, Agent..." /></div>
+            </div>
+            <div class="view-header">
+              <h2 id="table-title">Equipment</h2>
+              <div class="view-header-actions">
+                <button class="button assign-btn" onclick="abrirModalAsignar()"><i class="fas fa-user-plus"></i><span>Assign Item</span></button>
+                <button class="button" onclick="abrirModalAgregar()"><i class="fas fa-plus"></i><span>New Item</span></button>
+              </div>
+            </div>
+            <div class="table-container">
+              <div id="loader-equipos" class="loader-container hidden"><div class="loader"></div></div>
+              <div class="table-wrapper">
+                <table id="tabla-inventario"><thead></thead><tbody></tbody></table>
+              </div>
+              <div id="mensaje-vacio" class="hidden">No equipment found.</div>
+              <div id="pagination-controls" class="pagination-container"></div>
+            </div>
+        </div>
+
+        <div id="view-reportes" class="view-container hidden">
+            <div class="card">
+                <h3>Create New Report</h3>
+                <div class="report-controls">
+                    <div>
+                        <label for="report-filter-type">Filter by:</label>
+                        <select id="report-filter-type"></select>
+                    </div>
+                    <div id="report-filter-value-container" class="hidden">
+                        <label for="report-filter-value">Value:</label>
+                        <div id="report-filter-value-wrapper"></div>
+                    </div>
+                    <button class="button" onclick="generateAdvancedReport()">Generate Report</button>
+                </div>
+            </div>
+            <div id="report-loader" class="loader-container hidden"><div class="loader"></div></div>
+            <div id="report-results-container" class="hidden">
+                <h2 id="report-title" class="mb-4">Report Results</h2>
+                <div id="report-kpi-grid" class="kpi-grid mb-4"></div>
+                <div class="table-container">
+                    <div class="flex justify-between items-center">
+                        <h3>Items Found</h3>
+                         <button id="export-btn" class="button export-btn" onclick="exportCurrentReport()">
+                            <i class="fas fa-file-csv"></i><span>Export to CSV</span>
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                      <table id="report-table"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="view-config" class="view-container hidden">
+            <div id="config-loader" class="loader-container hidden"><div class="loader"></div></div>
+            <div id="config-content" class="dashboard-grid">
+            </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="modal" class="modal-backdrop hidden">
+  <div class="modal-content">
+      <div class="modal-header">
+          <h3 id="modal-title"></h3>
+          <button onclick="cerrarModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="modal-tabs" class="modal-tabs">
+          <button id="tab-detalles" class="tab-btn active" onclick="switchModalTab('detalles')">Details</button>
+          <button id="tab-historial" class="tab-btn" onclick="switchModalTab('historial')">History</button>
+      </div>
+      <div class="modal-body">
+          <div id="modal-body-detalles" class="modal-tab-content"></div>
+          <div id="modal-body-historial" class="modal-tab-content hidden">
+              <div id="historial-loader" class="loader-container"><div class="loader"></div></div>
+              <ul id="historial-list" class="activity-list"></ul>
+          </div>
+      </div>
+      <div id="modal-footer" class="modal-footer"></div>
+  </div>
+</div>

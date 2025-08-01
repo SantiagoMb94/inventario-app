@@ -1,0 +1,131 @@
+<script>
+  // ===============================================================
+  // ARCHIVO: JS_Config.html
+  // ROL: Lógica para la vista de Configuración.
+  // ===============================================================
+
+  /**
+   * Carga los datos para la vista de configuración.
+   */
+  function loadConfigData() {
+      document.getElementById('config-loader').classList.remove('hidden');
+      document.getElementById('config-content').classList.add('hidden');
+      google.script.run
+          .withSuccessHandler(populateConfigView)
+          .withFailureHandler(mostrarError)
+          .getConfigurationLists();
+  }
+  
+  /**
+   * Rellena la vista de configuración con las listas y formularios.
+   * @param {Object} data Los datos de configuración.
+   */
+  function populateConfigView(data) {
+      document.getElementById('config-loader').classList.add('hidden');
+      const content = document.getElementById('config-content');
+      content.innerHTML = '';
+      content.classList.remove('hidden');
+
+      const lists = [
+        {name: 'Estados', key: 'estados', title: 'Estados'}, 
+        {name: 'Pisos', key: 'pisos', title: 'Pisos'}, 
+        {name: 'Marcas', key: 'marcas', title: 'Marcas'}
+      ];
+      
+      lists.forEach(list => {
+          const listName = list.name;
+          const listData = data[list.key] || [];
+          
+          let itemsHTML = listData.map(item => {
+              let actionButtons = `<button class="config-btn delete-btn" onclick="deleteConfigItem('${listName}', '${item}')" title="Eliminar"><i class="fas fa-trash-alt"></i></button>`;
+              if (listName === 'Pisos') {
+                actionButtons = `<button class="config-btn edit-btn" onclick="editConfigItem('${listName}', '${item}')" title="Editar Nombre"><i class="fas fa-pencil-alt"></i></button>` + actionButtons;
+              }
+              return `<li><span>${item}</span><div class="config-list-actions">${actionButtons}</div></li>`;
+          }).join('');
+
+          if(itemsHTML === '') {
+            itemsHTML = '<li class="empty-list">No hay ítems en esta lista.</li>';
+          }
+
+          const cardHTML = `
+            <div class="config-card">
+              <h3>Gestionar ${list.title}</h3>
+              <ul class="config-list">${itemsHTML}</ul>
+              <div class="add-item-form">
+                <input type="text" id="add-${list.key}-input" placeholder="Nuevo valor...">
+                <button class="button" onclick="addConfigItem('${listName}', '${list.key}')" title="Añadir">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>`;
+          content.innerHTML += cardHTML;
+      });
+  }
+  
+  /**
+   * Agrega un nuevo ítem a una lista de configuración.
+   * @param {string} listName El nombre de la lista en el backend.
+   * @param {string} key La clave usada para el ID del input.
+   */
+  function addConfigItem(listName, key) {
+      const input = document.getElementById(`add-${key}-input`);
+      const value = input.value.trim();
+      if (value) {
+          google.script.run
+              .withSuccessHandler(response => {
+                  showToast(response.message, response.success ? 'success' : 'error');
+                  if (response.success) {
+                      input.value = '';
+                      loadConfigData(); // Recarga la vista de config
+                      google.script.run.withSuccessHandler(data => { configData = data; populateFilterDropdowns(); }).getConfigurationLists(); // Actualiza config global
+                  }
+              })
+              .withFailureHandler(mostrarError)
+              .addConfigItem(listName, value);
+      }
+  }
+
+  /**
+   * Elimina un ítem de una lista de configuración.
+   * @param {string} listName El nombre de la lista.
+   * @param {string} value El valor a eliminar.
+   */
+  function deleteConfigItem(listName, value) {
+      if (confirm(`¿Seguro que quieres eliminar "${value}"? Esta acción no se puede deshacer.`)) {
+          google.script.run
+              .withSuccessHandler(response => {
+                  showToast(response.message, response.success ? 'success' : 'error');
+                  if (response.success) {
+                      loadConfigData();
+                      google.script.run.withSuccessHandler(data => { configData = data; populateFilterDropdowns(); }).getConfigurationLists();
+                  }
+              })
+              .withFailureHandler(mostrarError)
+              .deleteConfigItem(listName, value);
+      }
+  }
+
+  /**
+   * Edita el nombre de un piso.
+   * @param {string} listName Debe ser 'Pisos'.
+   * @param {string} oldValue El nombre actual del piso.
+   */
+  function editConfigItem(listName, oldValue) {
+    if (listName !== 'Pisos') return;
+    const newValue = prompt(`Editar nombre del piso:\n(No incluyas la palabra "Piso")`, oldValue);
+
+    if (newValue && newValue.trim() !== '' && newValue !== oldValue) {
+      google.script.run
+        .withSuccessHandler(response => {
+          showToast(response.message, response.success ? 'success' : 'error');
+          if (response.success) {
+            loadConfigData();
+            google.script.run.withSuccessHandler(data => { configData = data; populateFilterDropdowns(); }).getConfigurationLists();
+          }
+        })
+        .withFailureHandler(mostrarError)
+        .renamePiso(oldValue, newValue.trim());
+    }
+  }
+</script>

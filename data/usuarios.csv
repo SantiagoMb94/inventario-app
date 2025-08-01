@@ -1,0 +1,6 @@
+nombre,email,password,rol
+Administrador,admin@inventario.com,admin123,admin
+Juan Pérez,juan.perez@empresa.com,password123,agente
+María García,maria.garcia@empresa.com,password123,agente
+Carlos López,carlos.lopez@empresa.com,password123,agente
+Ana Martínez,ana.martinez@empresa.com,password123,agente 

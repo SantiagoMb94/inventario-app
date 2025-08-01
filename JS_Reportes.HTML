@@ -1,0 +1,177 @@
+<script>
+  // ===============================================================
+  // ARCHIVO: JS_Reportes.html
+  // ROL: Lógica para la generación y visualización de reportes.
+  // ===============================================================
+
+  let currentReportData = [];
+  let reportChoices = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('report-filter-type').addEventListener('change', updateReportFilterValue);
+  });
+  
+  function populateReportFilter() {
+      const filterSelect = document.getElementById('report-filter-type');
+      filterSelect.innerHTML = '';
+      
+      const filterOptions = {
+        '': 'Select a criterion',
+        'Marca': 'Brand',
+        'Estado': 'Status',
+        'Piso': 'Floor',
+        'Agente': 'Agent',
+        'Propiedad': 'Ownership'
+      };
+
+      for(const [value, text] of Object.entries(filterOptions)) {
+        filterSelect.innerHTML += `<option value="${value}">${text}</option>`;
+      }
+      updateReportFilterValue();
+  }
+  
+  function updateReportFilterValue() {
+      const filterType = document.getElementById('report-filter-type').value;
+      const container = document.getElementById('report-filter-value-container');
+      const wrapper = document.getElementById('report-filter-value-wrapper');
+      
+      if (reportChoices) reportChoices.destroy();
+      wrapper.innerHTML = '';
+      
+      if (!filterType) {
+          container.classList.add('hidden');
+          return;
+      }
+
+      let key = '';
+      if (filterType === 'Estado') key = 'estados';
+      else if (filterType === 'Marca') key = 'marcas';
+      else if (filterType === 'Piso') key = 'pisos';
+      else if (filterType === 'Agente') key = 'agentes';
+      else if (filterType === 'Propiedad') key = 'propiedades';
+
+      const options = configData[key] || [];
+
+      const select = document.createElement('select');
+      select.id = 'report-filter-value';
+      select.multiple = true;
+      options.forEach(opt => select.innerHTML += `<option value="${opt}">${opt}</option>`);
+      wrapper.appendChild(select);
+
+      reportChoices = new Choices(select, {
+        removeItemButton: true,
+        placeholder: true,
+        placeholderValue: 'Select one or more options...',
+      });
+      
+      container.classList.remove('hidden');
+  }
+
+  function generateAdvancedReport() {
+      const filterType = document.getElementById('report-filter-type').value;
+      const filterValues = reportChoices ? reportChoices.getValue(true) : [];
+
+      if (!filterType || filterValues.length === 0) {
+          showToast('Please select a criterion and at least one value.', 'error');
+          return;
+      }
+
+      document.getElementById('report-loader').classList.remove('hidden');
+      document.getElementById('report-results-container').classList.add('hidden');
+
+      google.script.run
+          .withSuccessHandler(displayAdvancedReport)
+          .withFailureHandler(mostrarError)
+          .getAdvancedReportData({filterType, filterValues});
+  }
+
+  function displayAdvancedReport(response) {
+      document.getElementById('report-loader').classList.add('hidden');
+      
+      if (!response) {
+          showToast('Empty response from server. Please try again.', 'error');
+          return;
+      }
+      if (response.error) {
+          showToast(response.error, 'error');
+          return;
+      }
+
+      const { results, stats } = response;
+      currentReportData = results;
+
+      const container = document.getElementById('report-results-container');
+      const title = document.getElementById('report-title');
+      const kpiGrid = document.getElementById('report-kpi-grid');
+      const table = document.getElementById('report-table');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      kpiGrid.innerHTML = '';
+      
+      const filterTypeSelect = document.getElementById('report-filter-type');
+      const filterTypeDisplay = filterTypeSelect.options[filterTypeSelect.selectedIndex].text;
+      const selectedValues = reportChoices ? reportChoices.getValue(false).map(item => item.label).join(', ') : '';
+      title.textContent = `Report for ${filterTypeDisplay}: "${selectedValues}"`;
+
+      kpiGrid.innerHTML = `
+          <div class="kpi-card"><div class="kpi-value">${stats.total}</div><div class="kpi-label">Total</div></div>
+          <div class="kpi-card"><div class="kpi-value">${stats.asignado}</div><div class="kpi-label">Assigned</div></div>
+          <div class="kpi-card"><div class="kpi-value">${stats.stock}</div><div class="kpi-label">In Stock</div></div>
+          <div class="kpi-card"><div class="kpi-value">${stats.reparacion}</div><div class="kpi-label">In Repair</div></div>
+      `;
+
+      if (results.length > 0) {
+          const headers = [...ORDEN_COLUMNAS_EN];
+          const headerRow = document.createElement('tr');
+          headers.forEach(h => headerRow.innerHTML += `<th>${h}</th>`);
+          thead.appendChild(headerRow);
+
+          results.forEach(row => {
+              const tr = document.createElement('tr');
+              headers.forEach(hEn => {
+                  const hEs = COLUMN_MAP_EN_TO_ES[hEn];
+                  let cellValue = row[hEs] || 'N/A';
+                  if (hEs === 'Fecha de Ingreso' && row[hEs]) {
+                      cellValue = new Date(row[hEs]).toLocaleDateString('en-US');
+                  }
+                  tr.innerHTML += `<td>${cellValue}</td>`;
+              });
+              tbody.appendChild(tr);
+          });
+      } else {
+          tbody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 2rem;">No results found.</td></tr>';
+      }
+
+      container.classList.remove('hidden');
+  }
+  
+  function exportCurrentReport() {
+      if (!currentReportData || currentReportData.length === 0) {
+          showToast('No data to export.', 'error');
+          return;
+      }
+
+      const headers = ORDEN_COLUMNAS_EN;
+      let csvContent = "data:text/csv;charset=utf-8," 
+          + headers.map(h => `"${h}"`).join(",") + "\n" 
+          + currentReportData.map(row => 
+              headers.map(hEn => {
+                const hEs = COLUMN_MAP_EN_TO_ES[hEn];
+                return `"${String(row[hEs] || '').replace(/"/g, '""')}"`
+              }).join(",")
+          ).join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      const filterType = document.getElementById('report-filter-type').value;
+      const filterValue = reportChoices ? reportChoices.getValue(true).join('_') : '';
+      link.setAttribute("download", `report_${filterType}_${filterValue}.csv`);
+      link.setAttribute("href", encodedUri);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  }
+</script>

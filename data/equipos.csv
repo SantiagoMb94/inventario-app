@@ -1,0 +1,8 @@
+Serial,Nombre,Marca,Modelo,Tipo,Estado,Ubicacion,Piso,Agente,Email Agente,Propiedad,Fecha de Ingreso,Observaciones
+LAP001,Laptop Dell Inspiron,Dell,Inspiron 15 3000,Laptop,Stock,Stock,,,Empresa,2024-01-15,Equipo nuevo
+LAP002,Laptop HP Pavilion,HP,Pavilion 14,Laptop,Asignado,Piso 7,7,Juan Pérez,juan.perez@empresa.com,Empresa,2024-01-10,Asignado a desarrollo
+MON001,Monitor Dell 24",Dell,P2419H,Monitor,Stock,Stock,,,Empresa,2024-01-20,Monitor LED
+MON002,Monitor HP 27",HP,27f,Monitor,Asignado,Piso 10,10,María García,maria.garcia@empresa.com,Empresa,2024-01-12,Monitor para diseño
+TAB001,Tablet iPad,Apple,iPad Air,Tablet,En Reparación,Taller,,,Empresa,2024-01-05,Pantalla rota
+DES001,Desktop Lenovo,Lenovo,ThinkCentre M90n,Desktop,Stock,Stock,,,Empresa,2024-01-18,Desktop compacto
+DES002,Desktop Dell OptiPlex,Dell,OptiPlex 7090,Desktop,Asignado,Piso 12,12,Carlos López,carlos.lopez@empresa.com,Empresa,2024-01-08,Desktop para contabilidad 

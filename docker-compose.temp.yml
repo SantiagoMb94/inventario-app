@@ -1,0 +1,58 @@
+services:
+  # Base de datos MongoDB (temporal)
+  mongodb:
+    image: mongo:latest
+    container_name: inventario_mongodb_temp
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: inventario_db
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - inventario_network_temp
+    restart: unless-stopped
+
+  # Gateway API
+  gateway:
+    build: ./gateway
+    container_name: inventario_gateway_temp
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      JWT_SECRET: your-super-secret-jwt-key
+      AUTH_SERVICE_URL: http://auth-service:3001
+      EQUIPOS_SERVICE_URL: http://equipos-service:3002
+      INVENTARIO_SERVICE_URL: http://inventario-service:3003
+      REPORTES_SERVICE_URL: http://reportes-service:3004
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    networks:
+      - inventario_network_temp
+    restart: unless-stopped
+
+  # Frontend Client
+  client:
+    build: ./client
+    container_name: inventario_client_temp
+    environment:
+      NODE_ENV: development
+      REACT_APP_API_URL: http://localhost:3000
+    ports:
+      - "3005:3000"
+    depends_on:
+      - gateway
+    networks:
+      - inventario_network_temp
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  inventario_network_temp:
+    driver: bridge 
