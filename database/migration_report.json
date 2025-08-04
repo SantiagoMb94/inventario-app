@@ -1,0 +1,49 @@
+{
+  "totalEquipos": 529,
+  "totalUsuarios": 386,
+  "totalHistorial": 280,
+  "estados": [
+    "Stock",
+    "En Reparación",
+    "Disponible",
+    "Asignado"
+  ],
+  "marcas": [
+    "Lenovo",
+    "HP",
+    "Acer",
+    "Apple"
+  ],
+  "pisos": [
+    "Stock",
+    "VIP",
+    "7",
+    "10",
+    "12",
+    "16"
+  ],
+  "propiedades": [
+    "Third Way Health",
+    "PcCom – Equipment for Rent"
+  ],
+  "equiposPorPiso": {
+    "7": 81,
+    "10": 95,
+    "12": 107,
+    "16": 63,
+    "Stock": 141,
+    "VIP": 42
+  },
+  "equiposPorEstado": {
+    "Stock": 137,
+    "En Reparación": 2,
+    "Disponible": 2,
+    "Asignado": 388
+  },
+  "equiposPorMarca": {
+    "Lenovo": 410,
+    "HP": 106,
+    "Acer": 4,
+    "Apple": 9
+  }
+}
