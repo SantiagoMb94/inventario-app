@@ -33,7 +33,6 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3001
       EQUIPOS_SERVICE_URL: http://equipos-service:3002
       INVENTARIO_SERVICE_URL: http://inventario-service:3003
-      REPORTES_SERVICE_URL: http://reportes-service:3004
     ports:
       - "${GATEWAY_PORT:-3000}:3000"
     depends_on:
@@ -109,24 +108,7 @@ services:
       - inventario_network
     restart: unless-stopped
 
-  # Servicio de Reportes
-  reportes-service:
-    build: ./services/reportes-service
-    container_name: inventario_reportes
-    environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${REPORTES_SERVICE_PORT:-3004}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-inventario_db}
-      POSTGRES_USER: ${POSTGRES_USER:-inventario_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventario_pass}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - inventario_network
-    restart: unless-stopped
+
 
   # Frontend Client
   client:

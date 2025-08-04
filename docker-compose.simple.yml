@@ -1,0 +1,104 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:13
+    container_name: inventario_postgres
+    environment:
+      POSTGRES_DB: inventario_db
+      POSTGRES_USER: inventario_user
+      POSTGRES_PASSWORD: inventario_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - inventario_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventario_user"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Servicio de Autenticación
+  auth-service:
+    build: ./services/auth-service
+    container_name: inventario_auth
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      JWT_SECRET: your-super-secret-jwt-key
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: inventario_db
+      POSTGRES_USER: inventario_user
+      POSTGRES_PASSWORD: inventario_pass
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Servicio de Equipos
+  equipos-service:
+    build: ./services/equipos-service
+    container_name: inventario_equipos
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: inventario_db
+      POSTGRES_USER: inventario_user
+      POSTGRES_PASSWORD: inventario_pass
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Servicio de Inventario
+  inventario-service:
+    build: ./services/inventario-service
+    container_name: inventario_inventario
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: inventario_db
+      POSTGRES_USER: inventario_user
+      POSTGRES_PASSWORD: inventario_pass
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+  # Frontend Client
+  client:
+    build: ./client
+    container_name: inventario_client
+    environment:
+      NODE_ENV: production
+      REACT_APP_API_URL: http://localhost:3000
+    ports:
+      - "3001:3001"
+    networks:
+      - inventario_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  inventario_network:
+    driver: bridge 

@@ -299,18 +299,18 @@ const Dashboard = () => {
                       <ListItemText
                         primary={item[3]}
                         secondary={
-                          <Box>
-                            <Typography variant="caption" color="textSecondary">
+                          <React.Fragment>
+                            <Typography variant="caption" color="textSecondary" component="span" display="block">
                               {item[0]} - {item[2]}
                             </Typography>
                             {item[1] && (
                               <Chip 
                                 label={item[1]} 
                                 size="small" 
-                                sx={{ ml: 1 }}
+                                sx={{ ml: 1, mt: 0.5 }}
                               />
                             )}
-                          </Box>
+                          </React.Fragment>
                         }
                       />
                     </ListItem>
