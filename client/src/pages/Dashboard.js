@@ -38,15 +38,42 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      // Cargar estadísticas
-      const statsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/inventario/dashboard/stats`);
-      const statsData = await statsResponse.json();
-      setStats(statsData);
+      // Datos de ejemplo para demostración
+      const mockStats = {
+        totalEquipos: 156,
+        totalAsignados: 89,
+        totalStock: 45,
+        enReparacion: 12,
+        deBaja: 10,
+        alertas: {
+          equiposSinSerial: [
+            { nombre: 'Laptop HP Pavilion', ubicacion: 'Oficina 3' },
+            { nombre: 'Monitor Dell 24"', ubicacion: 'Sala de Reuniones' }
+          ],
+          serialesDuplicados: [
+            { value: 'SN123456789', count: 2 },
+            { value: 'SN987654321', count: 3 }
+          ],
+          macLanDuplicadas: [
+            { value: '00:11:22:33:44:55', count: 2 }
+          ],
+          macWifiDuplicadas: []
+        }
+      };
 
-      // Cargar actividad reciente
-      const activityResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/inventario/dashboard/activity`);
-      const activityData = await activityResponse.json();
-      setActivity(activityData);
+      const mockActivity = [
+        ['2024-01-15 14:30', 'Asignado', 'Juan Pérez', 'Laptop Dell asignada a Juan Pérez'],
+        ['2024-01-15 13:45', 'Stock', 'Sistema', 'Monitor HP agregado al inventario'],
+        ['2024-01-15 12:20', 'Reparación', 'María García', 'Laptop Lenovo enviada a reparación'],
+        ['2024-01-15 11:15', 'Asignado', 'Carlos López', 'Impresora HP asignada a Carlos López'],
+        ['2024-01-15 10:30', 'Stock', 'Sistema', '5 teclados inalámbricos agregados'],
+        ['2024-01-14 16:45', 'De Baja', 'Admin', 'Monitor CRT dado de baja'],
+        ['2024-01-14 15:20', 'Asignado', 'Ana Martínez', 'Tablet Samsung asignada a Ana Martínez'],
+        ['2024-01-14 14:10', 'Stock', 'Sistema', 'Switch de red agregado al inventario']
+      ];
+
+      setStats(mockStats);
+      setActivity(mockActivity);
 
     } catch (err) {
       setError('Error al cargar datos del dashboard');

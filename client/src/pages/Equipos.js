@@ -9,7 +9,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   Button,
   TextField,
   FormControl,
@@ -21,102 +20,114 @@ import {
   CardContent,
   Chip,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   CircularProgress,
-  Alert,
-  Snackbar
+  Alert
 } from '@mui/material';
 import {
   Add,
   Edit,
-  Delete,
   Search,
-  FilterList,
   Refresh,
-  Assignment,
-  Warehouse
+  PersonAdd,
+  FolderOpen,
+  Send
 } from '@mui/icons-material';
 
 const Equipos = () => {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(30);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  
-  // Filtros
   const [filtros, setFiltros] = useState({
     Estado: '',
     Marca: '',
     Propiedad: '',
     general: ''
   });
-  const [hoja, setHoja] = useState('Stock');
-  
-  // Configuración
-  const [config, setConfig] = useState({});
-  
-  // Modal
-  const [openModal, setOpenModal] = useState(false);
-  const [editingEquipo, setEditingEquipo] = useState(null);
-  const [formData, setFormData] = useState({
-    serial: '',
-    nombre: '',
-    marca: '',
-    modelo: '',
-    tipo: '',
-    propiedad: '',
-    estado: 'Stock',
-    piso: '',
-    mac_lan: '',
-    mac_wifi: '',
-    ubicacion: 'Stock',
-    agente: ''
-  });
-
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
 
   useEffect(() => {
-    loadConfig();
     loadEquipos();
-  }, [page, rowsPerPage, filtros, hoja]);
-
-  const loadConfig = async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/inventario/config/lists`);
-      const data = await response.json();
-      setConfig(data);
-    } catch (err) {
-      console.error('Error cargando configuración:', err);
-    }
-  };
+  }, []);
 
   const loadEquipos = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        pagina: page + 1,
-        itemsPorPagina: rowsPerPage,
-        hoja: hoja,
-        ...filtros
-      });
-
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/inventario/equipos?${params}`);
-      const data = await response.json();
       
-      setEquipos(data.datos);
-      setTotalItems(data.totalItems);
-      setTotalPages(data.totalPaginas);
+      // Datos de equipos de ejemplo basados en el sistema actual
+      const mockEquipos = [
+        {
+          id: 1,
+          serial: 'PF4L3QHY',
+          nombre: 'ThinkPad',
+          marca: 'Lenovo',
+          propiedad: 'Third Way He...',
+          estado: 'Asignado',
+          piso: 'VIP',
+          mac_lan: '74:5D:22:66:...',
+          mac_wifi: 'BC:03:58:F1:...',
+          agente: 'Juan Bohorq...',
+          fecha_agregado: '2024-01-15',
+          acta_firmada: 'Ver Acta'
+        },
+        {
+          id: 2,
+          serial: '5CD4520XS1',
+          nombre: 'HP ProBook...',
+          marca: 'HP',
+          propiedad: 'PcCom - Equ...',
+          estado: 'Asignado',
+          piso: 'VIP',
+          mac_lan: 'C4:C6:E6:1A:...',
+          mac_wifi: 'C0:35:32:0F:...',
+          agente: 'Maye Diaz N...',
+          fecha_agregado: '2024-01-14',
+          acta_firmada: 'Ver Acta'
+        },
+        {
+          id: 3,
+          serial: 'PF4NQ1XY',
+          nombre: 'ThinkPad',
+          marca: 'Lenovo',
+          propiedad: 'Third Way He...',
+          estado: 'Asignado',
+          piso: 'VIP',
+          mac_lan: 'A1:B2:C3:D4:...',
+          mac_wifi: 'E5:F6:G7:H8:...',
+          agente: 'Natalia Iregui',
+          fecha_agregado: '2024-01-13',
+          acta_firmada: 'Ver Acta'
+        },
+        {
+          id: 4,
+          serial: 'PF3PB9MQ',
+          nombre: 'E41-55',
+          marca: 'Lenovo',
+          propiedad: 'PcCom - Equ...',
+          estado: 'Asignado',
+          piso: 'VIP',
+          mac_lan: '1A:2B:3C:4D:...',
+          mac_wifi: '5E:6F:7G:8H:...',
+          agente: 'Cristian Davi...',
+          fecha_agregado: '2024-01-12',
+          acta_firmada: 'Ver Acta'
+        },
+        {
+          id: 5,
+          serial: 'PF4WW55L',
+          nombre: 'ThinkPad',
+          marca: 'Lenovo',
+          propiedad: 'Third Way He...',
+          estado: 'Stock',
+          piso: '7',
+          mac_lan: '9A:8B:7C:6D:...',
+          mac_wifi: '5E:4F:3G:2H:...',
+          agente: '',
+          fecha_agregado: '2024-01-11',
+          acta_firmada: 'No adjunta'
+        }
+      ];
+
+      setEquipos(mockEquipos);
+      
     } catch (err) {
       setError('Error al cargar equipos');
       console.error('Error:', err);
@@ -125,119 +136,8 @@ const Equipos = () => {
     }
   };
 
-  const handlePageChange = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleRowsPerPageChange = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
   const handleFilterChange = (field, value) => {
     setFiltros(prev => ({ ...prev, [field]: value }));
-    setPage(0);
-  };
-
-  const handleHojaChange = (event) => {
-    setHoja(event.target.value);
-    setPage(0);
-  };
-
-  const handleOpenModal = (equipo = null) => {
-    if (equipo) {
-      setEditingEquipo(equipo);
-      setFormData(equipo);
-    } else {
-      setEditingEquipo(null);
-      setFormData({
-        serial: '',
-        nombre: '',
-        marca: '',
-        modelo: '',
-        tipo: '',
-        propiedad: '',
-        estado: 'Stock',
-        piso: '',
-        mac_lan: '',
-        mac_wifi: '',
-        ubicacion: 'Stock',
-        agente: ''
-      });
-    }
-    setOpenModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setEditingEquipo(null);
-  };
-
-  const handleFormChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const url = editingEquipo 
-        ? `${process.env.REACT_APP_API_URL}/api/inventario/equipos/${editingEquipo.id}`
-        : `${process.env.REACT_APP_API_URL}/api/inventario/equipos`;
-      
-      const method = editingEquipo ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: editingEquipo ? 'Equipo actualizado correctamente' : 'Equipo creado correctamente',
-          severity: 'success'
-        });
-        handleCloseModal();
-        loadEquipos();
-      } else {
-        throw new Error('Error en la operación');
-      }
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: 'Error al guardar equipo',
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Está seguro de que desea eliminar este equipo?')) {
-      try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/inventario/equipos/${id}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          setSnackbar({
-            open: true,
-            message: 'Equipo eliminado correctamente',
-            severity: 'success'
-          });
-          loadEquipos();
-        } else {
-          throw new Error('Error al eliminar');
-        }
-      } catch (err) {
-        setSnackbar({
-          open: true,
-          message: 'Error al eliminar equipo',
-          severity: 'error'
-        });
-      }
-    }
   };
 
   const getStatusColor = (status) => {
@@ -250,7 +150,7 @@ const Equipos = () => {
     }
   };
 
-  if (loading && equipos.length === 0) {
+  if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -258,93 +158,83 @@ const Equipos = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Box>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Gestión de Equipos
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenModal()}
-        >
-          Nuevo Equipo
-        </Button>
-      </Box>
-
       {/* Filtros */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Grid container spacing={2} alignItems="center">
+          <Grid container spacing={2} alignItems="end">
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Ubicación</InputLabel>
+                <InputLabel>Location</InputLabel>
                 <Select
-                  value={hoja}
-                  onChange={handleHojaChange}
-                  label="Ubicación"
+                  value=""
+                  onChange={() => {}}
+                  label="Location"
                 >
-                  <MenuItem value="All Locations">Todas las ubicaciones</MenuItem>
-                  {config.ubicaciones?.map(ubicacion => (
-                    <MenuItem key={ubicacion} value={ubicacion}>
-                      {ubicacion}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="">Todas las Ubicaciones</MenuItem>
+                  <MenuItem value="Stock">Stock</MenuItem>
+                  <MenuItem value="VIP">VIP</MenuItem>
+                  <MenuItem value="7">7</MenuItem>
+                  <MenuItem value="10">10</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Estado</InputLabel>
+                <InputLabel>Status</InputLabel>
                 <Select
                   value={filtros.Estado}
                   onChange={(e) => handleFilterChange('Estado', e.target.value)}
-                  label="Estado"
+                  label="Status"
                 >
-                  <MenuItem value="">Todos</MenuItem>
-                  {config.estados?.map(estado => (
-                    <MenuItem key={estado} value={estado}>
-                      {estado}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="">Todos los Estados</MenuItem>
+                  <MenuItem value="Asignado">Asignado</MenuItem>
+                  <MenuItem value="Stock">Stock</MenuItem>
+                  <MenuItem value="En Reparación">En Reparación</MenuItem>
+                  <MenuItem value="De Baja">De Baja</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Marca</InputLabel>
+                <InputLabel>Brand</InputLabel>
                 <Select
                   value={filtros.Marca}
                   onChange={(e) => handleFilterChange('Marca', e.target.value)}
-                  label="Marca"
+                  label="Brand"
                 >
-                  <MenuItem value="">Todas</MenuItem>
-                  {config.marcas?.map(marca => (
-                    <MenuItem key={marca} value={marca}>
-                      {marca}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="">Todas las Marcas</MenuItem>
+                  <MenuItem value="Lenovo">Lenovo</MenuItem>
+                  <MenuItem value="HP">HP</MenuItem>
+                  <MenuItem value="Dell">Dell</MenuItem>
+                  <MenuItem value="Apple">Apple</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Propiedad</InputLabel>
+                <InputLabel>Ownership</InputLabel>
                 <Select
                   value={filtros.Propiedad}
                   onChange={(e) => handleFilterChange('Propiedad', e.target.value)}
-                  label="Propiedad"
+                  label="Ownership"
                 >
-                  <MenuItem value="">Todas</MenuItem>
-                  {config.propiedades?.map(propiedad => (
-                    <MenuItem key={propiedad} value={propiedad}>
-                      {propiedad}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="">Todas las Propiedades</MenuItem>
+                  <MenuItem value="Third Way He...">Third Way He...</MenuItem>
+                  <MenuItem value="PcCom - Equ...">PcCom - Equ...</MenuItem>
+                  <MenuItem value="Propia">Propia</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -353,7 +243,8 @@ const Equipos = () => {
               <TextField
                 fullWidth
                 size="small"
-                label="Buscar (Serial, Nombre, Agente)"
+                label="General Search"
+                placeholder="Search by Serial, Name, Agent..."
                 value={filtros.general}
                 onChange={(e) => handleFilterChange('general', e.target.value)}
                 InputProps={{
@@ -371,228 +262,123 @@ const Equipos = () => {
         </CardContent>
       </Card>
 
+      {/* Header con botones */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1">
+          Equipment
+        </Typography>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="contained"
+            startIcon={<PersonAdd />}
+            sx={{ 
+              background: 'linear-gradient(45deg, #059669, #10b981)',
+              '&:hover': { background: 'linear-gradient(45deg, #047857, #059669)' }
+            }}
+          >
+            + Assign Item
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            sx={{ 
+              background: 'linear-gradient(45deg, #1976d2, #1565c0)',
+              '&:hover': { background: 'linear-gradient(45deg, #1565c0, #0d47a1)' }
+            }}
+          >
+            + New Item
+          </Button>
+        </Box>
+      </Box>
+
       {/* Tabla */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Serial</TableCell>
-              <TableCell>Nombre</TableCell>
-              <TableCell>Marca</TableCell>
-              <TableCell>Modelo</TableCell>
-              <TableCell>Estado</TableCell>
-              <TableCell>Agente</TableCell>
-              <TableCell>Ubicación</TableCell>
-              <TableCell>Acciones</TableCell>
+              <TableCell><strong>SERIAL</strong></TableCell>
+              <TableCell><strong>ITEM NAME</strong></TableCell>
+              <TableCell><strong>BRAND</strong></TableCell>
+              <TableCell><strong>OWNERSHIP</strong></TableCell>
+              <TableCell><strong>DATE ADDED</strong></TableCell>
+              <TableCell><strong>AGENT</strong></TableCell>
+              <TableCell><strong>STATUS</strong></TableCell>
+              <TableCell><strong>FLOOR</strong></TableCell>
+              <TableCell><strong>MAC LAN</strong></TableCell>
+              <TableCell><strong>MAC WIFI</strong></TableCell>
+              <TableCell><strong>ACTA FIRMADA</strong></TableCell>
+              <TableCell><strong>ACTIONS</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {equipos.map((equipo) => (
-              <TableRow key={equipo.id}>
-                <TableCell>{equipo.serial || 'N/A'}</TableCell>
+              <TableRow key={equipo.id} hover>
+                <TableCell>{equipo.serial}</TableCell>
                 <TableCell>{equipo.nombre}</TableCell>
                 <TableCell>{equipo.marca}</TableCell>
-                <TableCell>{equipo.modelo}</TableCell>
+                <TableCell>{equipo.propiedad}</TableCell>
+                <TableCell>{equipo.fecha_agregado}</TableCell>
+                <TableCell>{equipo.agente || 'N/A'}</TableCell>
                 <TableCell>
                   <Chip
                     label={equipo.estado}
                     color={getStatusColor(equipo.estado)}
                     size="small"
+                    sx={{ 
+                      backgroundColor: equipo.estado === 'Asignado' ? '#1976d2' : 
+                                     equipo.estado === 'Stock' ? '#2196f3' :
+                                     equipo.estado === 'En Reparación' ? '#ff9800' :
+                                     equipo.estado === 'De Baja' ? '#f44336' : '#757575',
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}
                   />
                 </TableCell>
-                <TableCell>{equipo.agente || 'N/A'}</TableCell>
-                <TableCell>{equipo.ubicacion}</TableCell>
+                <TableCell>{equipo.piso}</TableCell>
+                <TableCell style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                  {equipo.mac_lan}
+                </TableCell>
+                <TableCell style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                  {equipo.mac_wifi}
+                </TableCell>
+                <TableCell>
+                  {equipo.acta_firmada === 'Ver Acta' ? (
+                    <Button
+                      size="small"
+                      color="primary"
+                      sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                    >
+                      Ver Acta
+                    </Button>
+                  ) : (
+                    <span style={{ color: '#666', fontSize: '0.8rem' }}>No adjunta</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <IconButton
                     size="small"
-                    onClick={() => handleOpenModal(equipo)}
+                    sx={{ color: '#1976d2' }}
                   >
                     <Edit />
                   </IconButton>
                   <IconButton
                     size="small"
-                    onClick={() => handleDelete(equipo.id)}
-                    color="error"
+                    sx={{ color: '#666' }}
                   >
-                    <Delete />
+                    <FolderOpen />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    sx={{ color: '#666' }}
+                  >
+                    <Send />
                   </IconButton>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-        <TablePagination
-          component="div"
-          count={totalItems}
-          page={page}
-          onPageChange={handlePageChange}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
-          }
-        />
       </TableContainer>
-
-      {/* Modal de Equipo */}
-      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingEquipo ? 'Editar Equipo' : 'Nuevo Equipo'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Serial"
-                value={formData.serial}
-                onChange={(e) => handleFormChange('serial', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Nombre"
-                value={formData.nombre}
-                onChange={(e) => handleFormChange('nombre', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Marca"
-                value={formData.marca}
-                onChange={(e) => handleFormChange('marca', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Modelo"
-                value={formData.modelo}
-                onChange={(e) => handleFormChange('modelo', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Tipo"
-                value={formData.tipo}
-                onChange={(e) => handleFormChange('tipo', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Propiedad</InputLabel>
-                <Select
-                  value={formData.propiedad}
-                  onChange={(e) => handleFormChange('propiedad', e.target.value)}
-                  label="Propiedad"
-                >
-                  {config.propiedades?.map(propiedad => (
-                    <MenuItem key={propiedad} value={propiedad}>
-                      {propiedad}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
-                <Select
-                  value={formData.estado}
-                  onChange={(e) => handleFormChange('estado', e.target.value)}
-                  label="Estado"
-                >
-                  {config.estados?.map(estado => (
-                    <MenuItem key={estado} value={estado}>
-                      {estado}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Piso</InputLabel>
-                <Select
-                  value={formData.piso}
-                  onChange={(e) => handleFormChange('piso', e.target.value)}
-                  label="Piso"
-                >
-                  {config.pisos?.map(piso => (
-                    <MenuItem key={piso} value={piso}>
-                      {piso}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="MAC LAN"
-                value={formData.mac_lan}
-                onChange={(e) => handleFormChange('mac_lan', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="MAC WiFi"
-                value={formData.mac_wifi}
-                onChange={(e) => handleFormChange('mac_wifi', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Ubicación</InputLabel>
-                <Select
-                  value={formData.ubicacion}
-                  onChange={(e) => handleFormChange('ubicacion', e.target.value)}
-                  label="Ubicación"
-                >
-                  {config.ubicaciones?.map(ubicacion => (
-                    <MenuItem key={ubicacion} value={ubicacion}>
-                      {ubicacion}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Agente"
-                value={formData.agente}
-                onChange={(e) => handleFormChange('agente', e.target.value)}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseModal}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingEquipo ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
